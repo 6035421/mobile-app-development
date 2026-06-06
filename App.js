@@ -208,7 +208,7 @@ export default function App() {
                       hour12: false,
                       timeZone: item.timeZone,
                     });
-                    return <Text style={styles.sub}>🕐 Lokale tijd: {localTime}</Text>;
+                    return <Text style={styles.sub}>Lokale tijd: {localTime}</Text>;
                   } catch {
                     return null;
                   }
