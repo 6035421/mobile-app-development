@@ -23,12 +23,12 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 
 // Dit is de URL van onze ASP.NET Core API.
-// Via deze URL halen we personen op en slaan we personen op.
-const API_URL = 'https://to.internus.info/api/apimappersons';
+// Via deze URL halen we bedrijven op en slaan we bedrijven op.
+const API_URL = 'https://to.internus.info/api/apicompanies';
 
 export default function App() {
-  // Hier bewaren we alle personen uit de database.
-  const [persons, setPersons] = useState([]);
+  // Hier bewaren we alle bedrijven uit de database.
+  const [companies, setCompanies] = useState([]);
 
   // Hiermee bepalen we of het formulier zichtbaar is.
   const [formVisible, setFormVisible] = useState(false);
@@ -38,91 +38,104 @@ export default function App() {
 
   // Dit zijn de velden van het formulier.
   // Elke TextInput krijgt zijn eigen state.
-  const [mapPersonId, setMapPersonId] = useState(null);
+  const [sfCompanyId, setSfCompanyId] = useState(null);
   const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [number, setNumber] = useState('');
+  const [addition, setAddition] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('');
+  const [timeZone, setTimeZone] = useState('');
+  const [now, setNow] = useState(new Date());
 
   // Deze useEffect draait automatisch als de app opent.
   useEffect(() => {
-    loadPersons();
+    loadCompanies();
+
+    const timer = setInterval(() => setNow(new Date()), 1000); // 1000ms = 1 seconde
+    return () => clearInterval(timer);
   }, []);
 
   // READ
-  // Deze functie haalt alle personen op uit de API.
-  const loadPersons = async () => {
+  // Deze functie haalt alle bedrijven op uit de API.
+  const loadCompanies = async () => {
     try {
       const response = await fetch(API_URL);
       const data = await response.json();
 
-      // We stoppen de opgehaalde data in persons.
-      setPersons(data);
+      // We stoppen de opgehaalde data in companies.
+      setCompanies(data);
     } catch (error) {
-      Alert.alert('Fout', 'Personen konden niet worden geladen.');
+      Alert.alert('Fout', 'Bedrijven konden niet worden geladen.');
     }
   };
 
   // Deze functie maakt het formulier leeg.
   const resetForm = () => {
-    setMapPersonId(null);
+    setSfCompanyId(null);
     setName('');
+    setAddress('');
+    setNumber('');
+    setAddition('');
+    setPostalCode('');
+    setCity('');
+    setCountry('');
+    setLogoUrl('');
     setLatitude('');
     setLongitude('');
-    setPhotoUrl('');
+    setTimeZone('');
   };
 
-  // Deze functie opent het formulier om een nieuw persoon toe te voegen.
+  // Deze functie opent het formulier om een nieuw bedrijf toe te voegen.
   const openCreate = () => {
     resetForm();
     setFormVisible(true);
   };
 
-  // Deze functie opent het formulier met bestaande gegevens.
-  // Dit gebruiken we om iemand te wijzigen.
-  const openEdit = (person) => {
-    setMapPersonId(person.mapPersonId);
-    setName(person.name);
-    setLatitude(person.latitude);
-    setLongitude(person.longitude);
-    setPhotoUrl(person.photoUrl ?? '');
-
-    setFormVisible(true);
-  };
-
   // CREATE of UPDATE
-  // Deze functie slaat een persoon op.
-  const savePerson = async () => {
+  // Deze functie slaat een bedrijf op.
+  const saveCompany = async () => {
     // Eerst controleren we of verplichte velden zijn ingevuld.
-    if (!name || !latitude || !longitude) {
-      Alert.alert('Let op', 'Vul naam, latitude en longitude in.');
+    if (!name) {
+      Alert.alert('Let op', 'Vul minimaal een naam in.');
       return;
     }
 
     // We maken een object van de ingevulde gegevens.
-    const person = {
-      name: name,
-      latitude: latitude,
-      longitude: longitude,
-      photoUrl: photoUrl,
+    const company = {
+      name,
+      address,
+      number,
+      addition,
+      postalCode,
+      city,
+      country,
+      logoUrl,
+      latitude,
+      longitude,
+      timeZone,
     };
 
-    // Als mapPersonId bestaat, dan wijzigen we een bestaande persoon.
-    if (mapPersonId) {
-      person.mapPersonId = mapPersonId;
+    // Als sfCompanyId bestaat, dan wijzigen we een bestaand bedrijf.
+    if (sfCompanyId) {
+      company.sfCompanyId = sfCompanyId;
     }
 
     try {
       // Als er een id is, gebruiken we PUT.
       // Zonder id gebruiken we POST.
       const response = await fetch(
-        mapPersonId ? `${API_URL}/${mapPersonId}` : API_URL,
+        sfCompanyId ? `${API_URL}/${sfCompanyId}` : API_URL,
         {
-          method: mapPersonId ? 'PUT' : 'POST',
+          method: sfCompanyId ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(person),
+          body: JSON.stringify(company),
         }
       );
 
@@ -137,55 +150,19 @@ export default function App() {
       resetForm();
 
       // Lijst opnieuw laden.
-      loadPersons();
+      loadCompanies();
     } catch (error) {
       Alert.alert('Fout', 'Opslaan is mislukt.');
     }
   };
 
-  // DELETE
-  // Deze functie verwijdert een persoon.
-  const deletePerson = () => {
-    Alert.alert(
-      'Verwijderen',
-      'Weet je zeker dat je deze persoon wilt verwijderen?',
-      [
-        {
-          text: 'Annuleren',
-          style: 'cancel',
-        },
-        {
-          text: 'Verwijderen',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await fetch(`${API_URL}/${mapPersonId}`, {
-                method: 'DELETE',
-              });
-
-              if (!response.ok) {
-                throw new Error('Verwijderen mislukt');
-              }
-
-              setFormVisible(false);
-              resetForm();
-              loadPersons();
-            } catch (error) {
-              Alert.alert('Fout', 'Verwijderen is mislukt.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Alleen personen met geldige latitude en longitude komen op de kaart.
-  const validPersons = persons.filter(
-    (person) =>
-      person.latitude &&
-      person.longitude &&
-      !isNaN(parseFloat(person.latitude)) &&
-      !isNaN(parseFloat(person.longitude))
+  // Alleen bedrijven met geldige latitude en longitude komen op de kaart.
+  const validCompanies = companies.filter(
+    (company) =>
+      company.latitude &&
+      company.longitude &&
+      !isNaN(parseFloat(company.latitude)) &&
+      !isNaN(parseFloat(company.longitude))
   );
 
   return (
@@ -196,31 +173,47 @@ export default function App() {
           <Text style={styles.headerButton}>🗺️</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>People Map</Text>
+        <Text style={styles.title}>Company Map</Text>
 
         <TouchableOpacity onPress={openCreate}>
           <Text style={styles.headerButton}>＋</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Lijst met personen */}
+      {/* Lijst met bedrijven */}
       <FlatList
-        data={persons}
-        keyExtractor={(item) => item.mapPersonId.toString()}
+        data={companies}
+        keyExtractor={(item) => item.sfCompanyId.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => openEdit(item)}>
-            {item.photoUrl ? (
-              <Image source={{ uri: item.photoUrl }} style={styles.photo} />
+          <TouchableOpacity style={styles.card} >
+            {item.logoUrl ? (
+              <Image source={{ uri: item.logoUrl }} style={styles.photo} />
             ) : (
               <View style={styles.placeholder}>
-                <Text>👤</Text>
+                <Text>🏢</Text>
               </View>
             )}
 
-            <View>
+            <View style={styles.cardText}>
               <Text style={styles.name}>{item.name}</Text>
-              <Text>Latitude: {item.latitude}</Text>
-              <Text>Longitude: {item.longitude}</Text>
+              <Text style={styles.sub}>{item.city}{item.city && item.country ? ', ' : ''}{item.country}</Text>
+              <Text style={styles.sub}>{item.address} {item.number}{item.addition ? ` ${item.addition}` : ''}</Text>
+
+
+              <Text style={styles.sub}>{item.timeZone ? (() => {
+                  try {
+                    const localTime = now.toLocaleTimeString('nl-NL', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                      timeZone: item.timeZone,
+                    });
+                    return <Text style={styles.sub}>🕐 Lokale tijd: {localTime}</Text>;
+                  } catch {
+                    return null;
+                  }
+                })() : null}
+              </Text>
             </View>
           </TouchableOpacity>
         )}
@@ -244,19 +237,19 @@ export default function App() {
             initialRegion={{
               latitude: 52.3676,
               longitude: 4.9041,
-              latitudeDelta: 20,
-              longitudeDelta: 20,
+              latitudeDelta: 5,
+              longitudeDelta: 5,
             }}
           >
-            {validPersons.map((person) => (
+            {validCompanies.map((company) => (
               <Marker
-                key={person.mapPersonId}
+                key={company.sfCompanyId}
                 coordinate={{
-                  latitude: parseFloat(person.latitude),
-                  longitude: parseFloat(person.longitude),
+                  latitude: parseFloat(company.latitude),
+                  longitude: parseFloat(company.longitude),
                 }}
-                title={person.name}
-                description={`${person.latitude}, ${person.longitude}`}
+                title={company.name}
+                description={`${company.city}, ${company.country}`}
               />
             ))}
           </MapView>
@@ -272,10 +265,10 @@ export default function App() {
             </TouchableOpacity>
 
             <Text style={styles.title}>
-              {mapPersonId ? 'Wijzigen' : 'Toevoegen'}
+              {sfCompanyId ? 'Wijzigen' : 'Toevoegen'}
             </Text>
 
-            <TouchableOpacity onPress={savePerson}>
+            <TouchableOpacity onPress={saveCompany}>
               <Text style={styles.saveButton}>Opslaan</Text>
             </TouchableOpacity>
           </View>
@@ -286,6 +279,55 @@ export default function App() {
               placeholder="Naam"
               value={name}
               onChangeText={setName}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Straat"
+              value={address}
+              onChangeText={setAddress}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Huisnummer"
+              value={number}
+              onChangeText={setNumber}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Toevoeging"
+              value={addition}
+              onChangeText={setAddition}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Postcode"
+              value={postalCode}
+              onChangeText={setPostalCode}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Stad"
+              value={city}
+              onChangeText={setCity}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Land"
+              value={country}
+              onChangeText={setCountry}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Logo URL"
+              value={logoUrl}
+              onChangeText={setLogoUrl}
             />
 
             <TextInput
@@ -304,16 +346,12 @@ export default function App() {
 
             <TextInput
               style={styles.input}
-              placeholder="Foto URL"
-              value={photoUrl}
-              onChangeText={setPhotoUrl}
+              placeholder="Tijdzone (bijv. Europe/Amsterdam)"
+              value={timeZone}
+              onChangeText={setTimeZone}
             />
 
-            {mapPersonId && (
-              <TouchableOpacity style={styles.deleteButton} onPress={deletePerson}>
-                <Text style={styles.deleteText}>Verwijder persoon</Text>
-              </TouchableOpacity>
-            )}
+            
           </View>
         </SafeAreaView>
       </Modal>
@@ -369,6 +407,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  cardText: {
+    flex: 1,
+  },
+
   photo: {
     width: 50,
     height: 50,
@@ -389,6 +431,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 17,
     fontWeight: '600',
+  },
+
+  sub: {
+    fontSize: 13,
+    color: '#666',
   },
 
   form: {
