@@ -15,8 +15,12 @@ import {
   StyleSheet,        // Hiermee maken we styling
   Alert,             // Hiermee tonen we een melding
   Modal,             // Hiermee openen we een extra scherm
-  Image,             // Hiermee tonen we een foto
+  Image,               // Hiermee tonen we een foto
+  useWindowDimensions, // Hiermee reageren we op schermgrootte en rotatie
 } from 'react-native';
+
+// Hiermee kunnen we de schermoriëntatie aanpassen (portrait / landscape).
+import * as ScreenOrientation from 'expo-screen-orientation';
  
 // MapView is de kaart.
 // Marker is een pin op de kaart.
@@ -51,6 +55,9 @@ export default function App() {
   const [longitude, setLongitude] = useState('');
   const [timeZone, setTimeZone] = useState('');
   const [now, setNow] = useState(new Date());
+
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
  
   // Deze useEffect draait automatisch als de app opent.
   useEffect(() => {
@@ -59,6 +66,19 @@ export default function App() {
     const timer = setInterval(() => setNow(new Date()), 1000); // 1000ms = 1 seconde
     return () => clearInterval(timer);
   }, []);
+
+    // Buiten de kaart houden we portrait vast; op de kaart mag het scherm draaien.
+  useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+  }, []);
+
+  useEffect(() => {
+    if (mapVisible) {
+      ScreenOrientation.unlockAsync();
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    }
+  }, [mapVisible]);
  
   // READ
   // Deze functie haalt alle bedrijven op uit de API.
@@ -226,9 +246,20 @@ export default function App() {
       />
  
       {/* Kaart scherm */}
-      <Modal visible={mapVisible} animationType="slide">
+      <Modal
+        visible={mapVisible}
+        animationType="slide"
+        supportedOrientations={[
+          'portrait',
+          'portrait-upside-down',
+          'landscape',
+          'landscape-left',
+          'landscape-right',
+        ]}
+      >
+
         <SafeAreaView style={styles.container}>
-          <View style={styles.header}>
+          <View style={[styles.header, isLandscape && styles.headerLandscape]}>
             <TouchableOpacity onPress={() => setMapVisible(false)}>
               <Text style={styles.closeButton}>Sluiten</Text>
             </TouchableOpacity>
@@ -239,6 +270,7 @@ export default function App() {
           </View>
  
           <MapView
+            key={`${width}x${height}`}
             style={styles.map}
             initialRegion={{
               latitude: 52.3676,
@@ -573,5 +605,9 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
     backgroundColor: '#CBD5E1',
+  },
+
+  headerLandscape: {
+    height: 48,
   },
 });
